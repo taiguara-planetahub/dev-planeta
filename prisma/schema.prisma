@@ -1,0 +1,47 @@
+// =================================================================
+// SCHEMA DO BANCO DE DADOS - Prisma ORM
+// =================================================================
+// Este arquivo define a estrutura do banco de dados.
+// O Prisma usa este schema para:
+//   1. Gerar o cliente TypeScript que usamos no código (Prisma Client)
+//   2. Criar e gerenciar as migrations (alterações no banco)
+//   3. Mapear os models para tabelas no PostgreSQL
+// =================================================================
+
+// Configuração do gerador do Prisma Client
+// O Prisma Client é a biblioteca que usamos no código para fazer
+// consultas ao banco de dados de forma tipada e segura.
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Configuração da fonte de dados (banco de dados)
+// Aqui definimos que estamos usando PostgreSQL e que a URL de
+// conexão vem de uma variável de ambiente (.env).
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =================================================================
+// MODEL: Produto
+// =================================================================
+// Cada "model" do Prisma representa uma tabela no banco de dados.
+// O model "Produto" será convertido na tabela "Produto" no PostgreSQL.
+//
+// Campos:
+//   - id:        Identificador único, gerado automaticamente (autoincrement)
+//   - nome:      Nome do produto (deve ser único, não pode repetir)
+//   - valor:     Preço do produto (número decimal - Float)
+//   - tipo:      Categoria/tipo do produto (texto livre)
+//   - peso:      Peso do produto em kg (número decimal - Float)
+//   - createdAt: Data de criação, preenchida automaticamente
+// =================================================================
+model Produto {
+  id        Int      @id @default(autoincrement())
+  nome      String   @unique
+  valor     Float
+  tipo      String
+  peso      Float
+  createdAt DateTime @default(now())
+}
