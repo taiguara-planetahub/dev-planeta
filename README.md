@@ -1,76 +1,68 @@
-# 📦 MVP - Gestão de Produtos (Fullstack Next.js + Prisma + PostgreSQL)
+# Controle de Estoque de Almoxarifado
 
-Projeto desenvolvido como MVP para teste técnico de nível Júnior, utilizando **Next.js (App Router)**, **TypeScript**, **Tailwind CSS**, **Prisma ORM** e **PostgreSQL**.
-
----
-
-## 🛠️ Tecnologias Utilizadas
-
-- **Frontend & Backend (Fullstack):** Next.js 16 (App Router)
-- **Linguagem:** TypeScript
-- **Estilização:** Tailwind CSS v4
-- **ORM:** Prisma v6
-- **Banco de Dados:** PostgreSQL 16 (via Docker)
+Sistema web completo e enxuto para controle de estoque de almoxarifado corporativo, permitindo o cadastro de materiais e o registro de movimentações de **Entrada** e **Saída**, com histórico rastreável, estorno e garantia de integridade transacional.
 
 ---
 
-## 📂 Estrutura de Pastas
+## 🛠 Stack Tecnológica
 
-```text
-c:\dev-planeta\
-├── prisma\
-│   ├── schema.prisma          # Modelagem da tabela Produto com Prisma
-│   └── migrations\            # Histórico das migrações SQL
-├── src\
-│   ├── app\
-│   │   ├── api\
-│   │   │   └── produtos\
-│   │   │       ├── route.ts         # GET (listar) e POST (cadastrar)
-│   │   │       └── [id]\
-│   │   │           └── route.ts     # DELETE (deletar por ID)
-│   │   ├── globals.css        # Configurações do Tailwind CSS
-│   │   ├── layout.tsx         # Layout raiz da aplicação
-│   │   └── page.tsx           # UI reativa (Formulário + Tabela)
-│   └── lib\
-│       └── prisma.ts          # Instância singleton do Prisma Client
-├── .env                       # Variável DATABASE_URL para conexão
-├── docker-compose.yml         # Subida rápida do PostgreSQL
-└── package.json
-```
+- **Framework**: Next.js (App Router, React 19)
+- **Linguagem**: TypeScript (Strict Mode)
+- **Estilização**: Tailwind CSS v4
+- **ORM**: Prisma ORM
+- **Banco de Dados**: PostgreSQL
+- **Arquitetura**: Server Components + Server Actions nativas (sem bibliotecas extras de UI ou formulários)
 
 ---
 
-## 🚀 Como Executar o Projeto
+## 🚀 Como Rodar o Projeto
 
-### 1. Iniciar o Banco PostgreSQL via Docker
-```bash
-docker compose up -d
-```
-*(O container `postgres-planeta` já foi provisionado na porta `5432`)*
+### Pré-requisitos
+- Node.js (v20+ recomendado)
+- PostgreSQL rodando localmente ou via container Docker
 
-### 2. Executar as Migrations do Prisma
-```bash
-npx prisma migrate dev
-```
+### Passo a passo
 
-### 3. Iniciar o Servidor de Desenvolvimento
-```bash
-npm run dev
-```
+1. **Instalar as dependências:**
+   ```bash
+   npm install
+   ```
 
-Acesse a aplicação no navegador em: **[http://localhost:3000](http://localhost:3000)**
+2. **Configurar as variáveis de ambiente:**
+   Copie o arquivo de exemplo e configure a string de conexão com o banco:
+   ```bash
+   cp .env.example .env
+   ```
+   *Exemplo de URL no `.env`:*
+   ```env
+   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/almoxarifado?schema=public"
+   ```
+
+3. **Executar as migrações do banco de dados:**
+   ```bash
+   npx prisma migrate dev
+   ```
+
+4. **Popular o banco com dados de teste (Seed):**
+   ```bash
+   npx prisma db seed
+   ```
+
+5. **Iniciar o servidor de desenvolvimento:**
+   ```bash
+   npm run dev
+   ```
+   Acesse [http://localhost:3000](http://localhost:3000) no seu navegador.
 
 ---
 
-## 🧭 Arquitetura e Conceitos Didáticos para Explicação Técnica
+## 💡 Decisões Técnicas
 
-1. **Next.js App Router & Rota Dinâmica:**
-   - As rotas da API ficam em `src/app/api/produtos/route.ts` para coleções (`GET`, `POST`).
-   - Rotas dinâmicas como `src/app/api/produtos/[id]/route.ts` capturam parâmetros de rota no próprio nome da pasta (`[id]`).
-
-2. **Prisma Client Singleton (`src/lib/prisma.ts`):**
-   - No ambiente de desenvolvimento do Next.js, o hot-reloading pode recriar novas conexões com o PostgreSQL a cada salvamento. O padrão Singleton no `globalThis` impede o esgotamento do pool de conexões do banco.
-
-3. **Frontend Reativo (`src/app/page.tsx`):**
-   - Utiliza `"use client"` para permitir hooks do React (`useState` para controle do formulário e lista, `useEffect` para carregar dados na montagem do componente).
-   - O CRUD é executado assincronamente via `fetch` direto nas rotas internas `/api/produtos`, com tratamento de erros e atualização instantânea de estado.
+- **Server Components Exclusivos na Página Principal**: Todo o carregamento de dados ocorre no lado do servidor via Prisma, eliminando chamadas de API intermediárias (`fetch`/`route handlers`) e reduzindo a carga do cliente.
+- **Server Actions com Formulários Nativos**: Os formulários utilizam HTML padrão (`<form action={action}>`), aproveitando validações nativas do navegador (`required`, `min="1"`, `type="number"`) e garantindo funcionamento robusto sem dependências externas de formulários ou gerenciamento de estado cliente.
+- **Integridade Transacional (`prisma.$transaction`)**:
+  - **Criação de Movimentação**: O ajuste de saldo e o registro do histórico são executados na mesma transação atômica. Para saídas, valida-se rigorosamente que o saldo atual seja suficiente, prevenindo estoque negativo.
+  - **Exclusão e Estorno**: A remoção de uma movimentação estorna automaticamente o saldo no item (subtraindo no caso de estorno de entrada, e somando no caso de estorno de saída), com validação preventiva para que o estorno de entrada não deixe o saldo negativo.
+- **Relacionamento com Deleção em Cascata**: Configuração `onDelete: Cascade` na relação entre `Item` e `Movimentacao`, garantindo integridade referencial ao excluir itens.
+- **UX & Destaque Visual para Estoque Zerado**: Linhas e badges na tabela recebem destaque diferenciado em vermelho quando o saldo de um material chega a zero, facilitando a identificação imediata pela equipe do almoxarifado.
+- **Tratamento de Erros com `error.tsx`**: Tratamento declarativo com Error Boundary do Next.js para exibir mensagens claras caso uma regra de negócio (ex.: tentativa de retirar saldo insuficiente) seja violada.
