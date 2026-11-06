@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: estoque-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: estoque
+      POSTGRES_PASSWORD: estoque
+      POSTGRES_DB: estoque
+    ports:
+      - "5432:5432"
+    volumes:
+      - estoque-data:/var/lib/postgresql/data
+
+volumes:
+  estoque-data:
